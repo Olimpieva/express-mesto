@@ -16,7 +16,5 @@ routerUsers.get('/users/:userId', getUserById);
 routerUsers.patch('/users/me', updateProfile);
 
 routerUsers.patch('/users/me/avatar', updateAvatar);
-// 618ec31488606b72b04354ae
-// 618ec39466569be6af15a61f
 
 module.exports = routerUsers;
