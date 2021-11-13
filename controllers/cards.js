@@ -10,11 +10,7 @@ module.exports.getAllCards = (req, res) => {
   Card.find({})
     .then((data) => res.status(OK).send({ data }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при запросе карточек.' });
-      } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
-      }
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
     });
 };
 
@@ -36,9 +32,7 @@ module.exports.createCard = (req, res) => {
 };
 
 module.exports.removeCard = (req, res) => {
-  const cardId = req.body._id;
-
-  Card.findById(cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (card) {
         card.remove()
@@ -48,7 +42,11 @@ module.exports.removeCard = (req, res) => {
       }
     })
     .catch((err) => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      if (err.name === 'CastError') {
+        res.status(BAD_REQUEST).send({ message: 'Передан некорректный _id при удалении карточки.' });
+      } else {
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      }
     });
 };
 

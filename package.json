@@ -1,19 +1,20 @@
 {
   "name": "express-mesto",
   "version": "1.0.0",
-  "description": "## Директории",
+  "description": "REST API with Express, Node and MongoDB",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "lint": "npx eslint ."
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Olimpieva/express-mesto.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Olimpieva",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Olimpieva/express-mesto/issues"

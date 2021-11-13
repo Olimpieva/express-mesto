@@ -10,18 +10,12 @@ module.exports.getAllUsers = (req, res) => {
   User.find({})
     .then((data) => res.status(OK).send({ data }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при запросе пользователей.' });
-      } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
-      }
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
     });
 };
 
 module.exports.getUserById = (req, res) => {
-  const userId = req.user._id;
-
-  User.findById(userId)
+  User.findById(req.params.userId)
     .then((user) => {
       if (user) {
         res.status(OK).send({ data: user });
@@ -30,7 +24,11 @@ module.exports.getUserById = (req, res) => {
       }
     })
     .catch((err) => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      if (err.name === 'CastError') {
+        res.status(BAD_REQUEST).send({ message: 'Передан некорректный _id при поиске пользователя.' });
+      } else {
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      }
     });
 };
 
@@ -50,9 +48,18 @@ module.exports.createUser = (req, res) => {
 
 module.exports.updateProfile = (req, res) => {
   const { name, about } = req.body;
-  const userId = req.user._id;
 
-  User.findByIdAndUpdate(userId, { name, about })
+  User.findByIdAndUpdate(
+    req.user._id,
+    {
+      new: true,
+      runValidators: true,
+    },
+    {
+      name,
+      about,
+    },
+  )
     .then((user) => {
       if (user) {
         res.status(OK).send({ data: user });
@@ -71,9 +78,17 @@ module.exports.updateProfile = (req, res) => {
 
 module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
-  const userId = req.user._id;
 
-  return User.findByIdAndUpdate(userId, { avatar })
+  return User.findByIdAndUpdate(
+    req.user._id,
+    {
+      new: true,
+      runValidators: true,
+    },
+    {
+      avatar,
+    },
+  )
     .then((user) => {
       if (user) {
         res.status(OK).send(user);
