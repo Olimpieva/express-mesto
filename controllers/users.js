@@ -9,7 +9,13 @@ const {
 module.exports.getAllUsers = (req, res) => {
   User.find({})
     .then((data) => res.status(OK).send({ data }))
-    .catch((err) => res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при запросе пользователей.' });
+      } else {
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      }
+    });
 };
 
 module.exports.getUserById = (req, res) => {
@@ -24,7 +30,7 @@ module.exports.getUserById = (req, res) => {
       }
     })
     .catch((err) => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
     });
 };
 
@@ -37,7 +43,7 @@ module.exports.createUser = (req, res) => {
       if (err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при создании пользователя.' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };
@@ -58,7 +64,7 @@ module.exports.updateProfile = (req, res) => {
       if (err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при обновлении профиля.' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };
@@ -79,7 +85,7 @@ module.exports.updateAvatar = (req, res) => {
       if (err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при обновлении аватара.' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };

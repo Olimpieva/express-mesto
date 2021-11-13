@@ -6,16 +6,11 @@ const routerCards = require('./routes/cards');
 const { PORT = 3000 } = process.env;
 
 const app = express();
-mongoose.connect('mongodb://localhost:27017/mestodb')
-  .then(() => {
-    console.log('MongoDB has started!');
-  })
-  .catch((err) => console.log(err));
+mongoose.connect('mongodb://localhost:27017/mestodb');
 
 app.use(express.json());
 app.use(express.urlencoded());
 
-// app.use(express.json());
 app.use((req, res, next) => {
   req.user = {
     _id: '618ec39466569be6af15a61f',

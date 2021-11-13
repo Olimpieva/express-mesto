@@ -9,7 +9,13 @@ const {
 module.exports.getAllCards = (req, res) => {
   Card.find({})
     .then((data) => res.status(OK).send({ data }))
-    .catch((err) => res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при запросе карточек.' });
+      } else {
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+      }
+    });
 };
 
 module.exports.createCard = (req, res) => {
@@ -24,12 +30,12 @@ module.exports.createCard = (req, res) => {
       if (err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при создании карточки.' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };
 
-module.exports.removeCardById = (req, res) => {
+module.exports.removeCard = (req, res) => {
   const cardId = req.body._id;
 
   Card.findById(cardId)
@@ -42,7 +48,7 @@ module.exports.removeCardById = (req, res) => {
       }
     })
     .catch((err) => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
     });
 };
 
@@ -63,7 +69,7 @@ module.exports.likeCard = (req, res) => {
       if (err.name === 'CastError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные для постановки лайка. ' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };
@@ -85,7 +91,7 @@ module.exports.dislikeCard = (req, res) => {
       if (err.name === 'CastError') {
         res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные для снятия лайка. ' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
       }
     });
 };
