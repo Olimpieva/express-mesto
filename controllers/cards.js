@@ -32,11 +32,16 @@ module.exports.createCard = (req, res) => {
 };
 
 module.exports.removeCard = (req, res) => {
+  const userId = req.user._id;
   Card.findById(req.params.cardId)
     .then((card) => {
       if (card) {
-        card.remove()
-          .then(() => res.status(OK).send({ data: card }));
+        if (card.owner.toString === userId) {
+          card.remove()
+            .then(() => res.status(OK).send({ data: card }));
+        } else {
+          res.status(BAD_REQUEST).send({ message: 'Нет прав для удаления карточки.' });
+        }
       } else {
         res.status(NOT_FOUND).send({ message: 'Карточка с указанным _id не найдена.' });
       }
