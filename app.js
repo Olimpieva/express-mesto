@@ -12,16 +12,13 @@ const { PORT = 3000 } = process.env;
 const app = express();
 mongoose.connect('mongodb://localhost:27017/mestodb');
 
-console.log(process.env.NODE_ENV);
-// 4a2d71cee63dd7c565a4857c8b786e37
-
 app.use(express.json());
 app.use(express.urlencoded());
 app.use(cookieParser());
 
 // app.use((req, res, next) => {
 //   req.user = {
-//     _id: '618ec39466569be6af15a61f',
+//     _id: '5d8b8592978f8bd833ca8133'
 //   };
 
 //   next();

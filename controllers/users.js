@@ -10,69 +10,96 @@ const {
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
-module.exports.getAllUsers = (req, res) => {
-  User.find({})
-    .then((data) => res.status(OK).send({ data }))
-    .catch((err) => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
-    });
+module.exports.getAllUsers = async (req, res) => {
+  let users;
+  try {
+    users = await User.find({});
+    res.status(OK).send({ data: users });
+  } catch (err) {
+    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+  }
 };
 
-module.exports.getUserById = (req, res) => {
-  User.findById(req.params.userId ? req.params.userId : req.user._id)
-    .then((user) => {
-      if (user) {
-        res.status(OK).send({ data: user });
-      } else {
-        res.status(NOT_FOUND).send({ message: 'Пользователь по указанному _id не найден.' });
-      }
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
+module.exports.getUserById = async (req, res) => {
+  try {
+    const userId = req.params.userId ? req.params.userId : req.user._id;
+    let user;
+    try {
+      user = await User.findById(userId);
+    } catch (error) {
+      if (error.name === 'CastError') {
         res.status(BAD_REQUEST).send({ message: 'Передан некорректный _id при поиске пользователя.' });
       } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
       }
-    });
+    }
+
+    if (!user) {
+      res.status(NOT_FOUND).send({ message: 'Пользователь по указанному _id не найден.' });
+    }
+
+    try {
+      res.send(user);
+    } catch (error) {
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+    }
+  } catch (error) {
+    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+  }
 };
 
-module.exports.createUser = (req, res) => {
-  const {
-    name,
-    about,
-    avatar,
-    email,
-    password,
-  } = req.body;
+module.exports.createUser = async (req, res) => {
+  try {
+    const {
+      name,
+      about,
+      avatar,
+      email,
+      password,
+    } = req.body;
+    let hash;
 
-  bcrypt.hash(password, 10)
-    .then((hash) => {
-      User.create({
+    try {
+      hash = await bcrypt.hash(password, 10);
+    } catch (error) {
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+      return;
+    }
+
+    try {
+      await User.create({
         name,
         about,
         avatar,
         email,
         password: hash,
-      })
-        .then(() => res.status(OK).send({
-          data: {
-            name,
-            about,
-            avatar,
-            email,
-          },
-        }))
-        .catch((err) => {
-          if (err.name === 'ValidationError') {
-            res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при создании пользователя.' });
-          } else {
-            res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${err}.` });
-          }
-        });
-    });
+      });
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при создании пользователя.' });
+      } else {
+        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+      }
+    }
+
+    try {
+      res.status(OK).send({
+        data: {
+          name,
+          about,
+          avatar,
+          email,
+        },
+      });
+    } catch (error) {
+      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+    }
+  } catch (error) {
+    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+  }
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = async (req, res) => {
   const { email, password } = req.body;
   User.findOne({ email }).select('+password')
     .then((user) => {
