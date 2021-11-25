@@ -1,23 +1,21 @@
 const Card = require('../models/card');
-const {
-  OK,
-  BAD_REQUEST,
-  NOT_FOUND,
-  INTERNAL_SERVER_ERROR,
-} = require('../utils/constants');
+const BadRequestError = require('../errors/bad-request-error');
+const NotFoundError = require('../errors/not-found-error');
+const ForbiddenError = require('../errors/forbidden-error');
+const { OK } = require('../utils/constants');
 
-module.exports.getAllCards = async (req, res) => {
+module.exports.getAllCards = async (req, res, next) => {
   let cards;
 
   try {
     cards = await Card.find({});
     res.status(OK).send({ data: cards });
   } catch (error) {
-    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+    next(error);
   }
 };
 
-module.exports.createCard = async (req, res) => {
+module.exports.createCard = async (req, res, next) => {
   try {
     const { name, link } = req.body;
     const owner = req.user._id;
@@ -27,20 +25,18 @@ module.exports.createCard = async (req, res) => {
       card = await Card.create({ name, link, owner });
     } catch (error) {
       if (error.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные при создании карточки.' });
-      } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+        throw new BadRequestError('Переданы некорректные данные при создании карточки.');
       }
-      return;
+      throw error;
     }
 
     res.status(OK).send(card);
   } catch (error) {
-    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+    next(error);
   }
 };
 
-module.exports.removeCard = async (req, res) => {
+module.exports.removeCard = async (req, res, next) => {
   try {
     const userId = req.user._id;
     let card;
@@ -49,75 +45,75 @@ module.exports.removeCard = async (req, res) => {
       card = await Card.findById(req.params.cardId);
     } catch (error) {
       if (error.name === 'CastError') {
-        res.status(BAD_REQUEST).send({ message: 'Передан некорректный _id при удалении карточки.' });
-      } else {
-        res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+        throw new BadRequestError('Передан некорректный _id при удалении карточки.');
       }
-      return;
+      throw error;
     }
 
     if (!card) {
-      res.status(NOT_FOUND).send({ message: 'Карточка с указанным _id не найдена.' });
-      return;
+      throw new NotFoundError('Карточка с указанным _id не найдена.');
     }
 
     if (card.owner.toString() !== userId) {
-      res.status(BAD_REQUEST).send({ message: 'Нет прав для удаления карточки.' });
-      return;
+      throw new ForbiddenError('Нет прав для удаления карточки.');
     }
 
     await card.remove();
     res.status(OK).send({ data: card });
   } catch (error) {
-    res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
+    next(error);
   }
 };
 
-module.exports.likeCard = async (req, res) => {
+module.exports.likeCard = async (req, res, next) => {
   let card;
   try {
-    card = await Card.findByIdAndUpdate(
-      req.params.cardId,
-      { $addToSet: { likes: req.user._id } },
-      { new: true },
-    );
+    try {
+      card = await Card.findByIdAndUpdate(
+        req.params.cardId,
+        { $addToSet: { likes: req.user._id } },
+        { new: true },
+      );
+    } catch (error) {
+      if (error.name === 'CastError') {
+        throw new BadRequestError('Переданы некорректные данные для постановки лайка.');
+      }
+      throw error;
+    }
 
     if (!card) {
-      res.status(NOT_FOUND).send({ message: 'Передан несуществующий _id карточки.' });
-      return;
+      throw new NotFoundError('Передан несуществующий _id карточки.');
     }
 
     res.status(OK).send(card);
   } catch (error) {
-    if (error.name === 'CastError') {
-      res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные для постановки лайка. ' });
-    } else {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
-    }
+    next(error);
   }
 };
 
-module.exports.dislikeCard = async (req, res) => {
+module.exports.dislikeCard = async (req, res, next) => {
   let card;
 
   try {
-    card = await Card.findByIdAndUpdate(
-      req.params.cardId,
-      { $pull: { likes: req.user._id } },
-      { new: true },
-    );
+    try {
+      card = await Card.findByIdAndUpdate(
+        req.params.cardId,
+        { $pull: { likes: req.user._id } },
+        { new: true },
+      );
+    } catch (error) {
+      if (error.name === 'CastError') {
+        throw new BadRequestError('Переданы некорректные данные для постановки лайка.');
+      }
+      throw error;
+    }
 
     if (!card) {
-      res.status(NOT_FOUND).send({ message: 'Передан несуществующий _id карточки.' });
-      return;
+      throw new NotFoundError('Передан несуществующий _id карточки.');
     }
 
     res.status(OK).send(card);
   } catch (error) {
-    if (error.name === 'CastError') {
-      res.status(BAD_REQUEST).send({ message: 'Переданы некорректные данные для снятия лайка. ' });
-    } else {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: `Произошла ошибка на сервере: ${error}.` });
-    }
+    next(error);
   }
 };
