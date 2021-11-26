@@ -8,11 +8,13 @@ module.exports = (req, res, next) => {
   if (token) {
     let payload;
     try {
-      payload = jwt.verify(token, NODE_ENV === 'production' ? JWT_SECRET : 'super-strong-secret', { expiresIn: '7d' });
+      payload = jwt.verify(token, NODE_ENV === 'production' ? JWT_SECRET : 'super-strong-secret');
     } catch (error) {
-      throw new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.');
+      next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
     req.user = payload;
     next();
+  } else {
+    next(new UnauthorizedError('Необходима авторизация.'));
   }
 };

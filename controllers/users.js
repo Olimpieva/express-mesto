@@ -23,21 +23,10 @@ module.exports.getAllUsers = async (req, res, next) => {
 module.exports.getUserById = async (req, res, next) => {
   try {
     const userId = req.params.userId ? req.params.userId : req.user._id;
-    let user;
-    try {
-      user = await User.findById(userId);
-    } catch (error) {
-      if (error.name === 'CastError') {
-        throw new BadRequestError('Передан некорректный _id при поиске пользователя.');
-      }
-      throw error;
-    }
+    const user = await User.findById(userId)
+      .orFail(() => next(new NotFoundError('Пользователь по указанному _id не найден.')));
 
-    if (!user) {
-      throw new NotFoundError('Пользователь по указанному _id не найден.');
-    }
-
-    res.send(user);
+    await res.send(user);
   } catch (error) {
     next(error);
   }
@@ -58,7 +47,7 @@ module.exports.createUser = async (req, res, next) => {
       hash = await bcrypt.hash(password, 10);
     } catch (error) {
       if (error.name === 'ValidationError') {
-        throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
+        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
       }
       throw error;
     }
@@ -73,10 +62,10 @@ module.exports.createUser = async (req, res, next) => {
       });
     } catch (error) {
       if (error.name === 'ValidationError') {
-        throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
+        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
       }
       if (error.name === 'MongoServerError' && error.code === 11000) {
-        throw new ConflictError('Пользователь с таким e-mail уже зарегистрирован.');
+        next(new ConflictError('Пользователь с таким e-mail уже зарегистрирован.'));
       }
       throw error;
     }
@@ -102,17 +91,17 @@ module.exports.login = async (req, res, next) => {
     try {
       user = await User.findOne({ email }).select('+password');
     } catch (error) {
-      throw new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.');
+      next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
 
     if (!user) {
-      throw new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.');
+      next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
 
     const isMatched = await bcrypt.compare(password, user.password);
 
     if (!isMatched) {
-      throw new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.');
+      next(new UnauthorizedError('Переданы некорректные ggg данные при авторизации пользователя.'));
     }
 
     const token = jwt.sign(
@@ -124,7 +113,7 @@ module.exports.login = async (req, res, next) => {
     await res.cookie('jwt', token, {
       maxAge: 3600000,
     });
-    res.status(200).send(token);
+    res.status(OK).json({ token, message: 'Авторизация прошла успешно.' });
   } catch (error) {
     next(error);
   }
@@ -133,30 +122,18 @@ module.exports.login = async (req, res, next) => {
 module.exports.updateProfile = async (req, res, next) => {
   try {
     const { name, about } = req.body;
-    let user;
 
-    try {
-      user = await User.findByIdAndUpdate(
-        req.user._id,
-        {
-          name,
-          about,
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      );
-    } catch (error) {
-      if (error.name === 'ValidationError' || error.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные при обновлении профиля.');
-      }
-      throw error;
-    }
-
-    if (!user) {
-      throw new NotFoundError('Пользователь с указанным _id не найден.');
-    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        name,
+        about,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).orFail(() => next(new BadRequestError('Переданы некорректные данные при обновлении профиля.')));
 
     res.status(OK).send({ data: user });
   } catch (error) {
@@ -165,10 +142,10 @@ module.exports.updateProfile = async (req, res, next) => {
 };
 
 module.exports.updateAvatar = async (req, res, next) => {
-  const { avatar } = req.body;
-  let user;
   try {
-    user = await User.findByIdAndUpdate(
+    const { avatar } = req.body;
+
+    const user = await User.findByIdAndUpdate(
       req.user._id,
       {
         avatar,
@@ -177,18 +154,10 @@ module.exports.updateAvatar = async (req, res, next) => {
         new: true,
         runValidators: true,
       },
-    );
-
-    if (!user) {
-      throw new NotFoundError('Пользователь с указанным _id не найден.');
-    }
+    ).orFail(() => next(new BadRequestError('Переданы некорректные данные при обновлении аватара.')));
 
     res.status(OK).send(user);
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      throw new BadRequestError('Переданы некорректные данные при обновлении аватара.');
-    } else {
-      next(error);
-    }
+    next(error);
   }
 };
