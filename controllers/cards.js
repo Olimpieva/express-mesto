@@ -23,16 +23,19 @@ module.exports.createCard = async (req, res, next) => {
     try {
       card = await Card.create({ name, link, owner });
     } catch (error) {
+      let err = error;
       if (error.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные при создании карточки.'));
+        err = new BadRequestError('Переданы некорректные данные при создании карточки.');
       }
-      throw error;
+      return next(err);
     }
 
     res.status(OK).send(card);
   } catch (error) {
     next(error);
   }
+
+  return null;
 };
 
 module.exports.removeCard = async (req, res, next) => {
@@ -42,7 +45,7 @@ module.exports.removeCard = async (req, res, next) => {
       .orFail(() => next(new NotFoundError('Карточка с указанным _id не найдена.')));
 
     if (card.owner.toString() !== userId) {
-      next(new ForbiddenError('Нет прав для удаления карточки.'));
+      return next(new ForbiddenError('Нет прав для удаления карточки.'));
     }
 
     await card.remove();
@@ -50,6 +53,8 @@ module.exports.removeCard = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+
+  return null;
 };
 
 module.exports.likeCard = async (req, res, next) => {

@@ -44,7 +44,7 @@ app.post(
   celebrate({
     body: Joi.object().keys({
       email: Joi.string().required().email(),
-      password: Joi.string().required().min(8),
+      password: Joi.string().required(),
     }),
   }),
   login,
@@ -53,9 +53,7 @@ app.post(
 app.use(auth);
 app.use('/', routerUsers);
 app.use('/', routerCards);
-app.use('*', (req, res, next) => {
-  next(new NotFoundError('Запрашиваемая страница не найдена.'));
-});
+app.use('*', (req, res, next) => next(new NotFoundError('Запрашиваемая страница не найдена.')));
 
 app.use(errors());
 app.use(errorHandler);

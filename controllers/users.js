@@ -46,10 +46,11 @@ module.exports.createUser = async (req, res, next) => {
     try {
       hash = await bcrypt.hash(password, 10);
     } catch (error) {
+      let err = error;
       if (error.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
+        err = new BadRequestError('Переданы некорректные данные при создании пользователя.');
       }
-      throw error;
+      return next(err);
     }
 
     try {
@@ -61,13 +62,14 @@ module.exports.createUser = async (req, res, next) => {
         password: hash,
       });
     } catch (error) {
+      let err = error;
       if (error.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
+        err = new BadRequestError('Переданы некорректные данные при создании пользователя.');
       }
       if (error.name === 'MongoServerError' && error.code === 11000) {
-        next(new ConflictError('Пользователь с таким e-mail уже зарегистрирован.'));
+        err = new ConflictError('Пользователь с таким e-mail уже зарегистрирован.');
       }
-      throw error;
+      return next(err);
     }
 
     res.status(OK).send({
@@ -81,6 +83,8 @@ module.exports.createUser = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+
+  return null;
 };
 
 module.exports.login = async (req, res, next) => {
@@ -90,18 +94,17 @@ module.exports.login = async (req, res, next) => {
 
     try {
       user = await User.findOne({ email }).select('+password');
+      if (!user) {
+        return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
+      }
     } catch (error) {
-      next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
-    }
-
-    if (!user) {
-      next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
+      return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
 
     const isMatched = await bcrypt.compare(password, user.password);
 
     if (!isMatched) {
-      next(new UnauthorizedError('Переданы некорректные ggg данные при авторизации пользователя.'));
+      return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
 
     const token = jwt.sign(
@@ -117,6 +120,8 @@ module.exports.login = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+
+  return null;
 };
 
 module.exports.updateProfile = async (req, res, next) => {
