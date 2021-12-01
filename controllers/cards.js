@@ -18,24 +18,16 @@ module.exports.createCard = async (req, res, next) => {
   try {
     const { name, link } = req.body;
     const owner = req.user._id;
-    let card;
-
-    try {
-      card = await Card.create({ name, link, owner });
-    } catch (error) {
-      let err = error;
-      if (error.name === 'ValidationError') {
-        err = new BadRequestError('Переданы некорректные данные при создании карточки.');
-      }
-      return next(err);
-    }
+    const card = await Card.create({ name, link, owner });
 
     res.status(OK).send(card);
   } catch (error) {
-    next(error);
+    let err = error;
+    if (error.name === 'ValidationError') {
+      err = new BadRequestError('Переданы некорректные данные при создании карточки.');
+    }
+    next(err);
   }
-
-  return null;
 };
 
 module.exports.removeCard = async (req, res, next) => {

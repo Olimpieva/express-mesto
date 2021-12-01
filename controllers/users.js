@@ -41,36 +41,16 @@ module.exports.createUser = async (req, res, next) => {
       email,
       password,
     } = req.body;
-    let hash;
 
-    try {
-      hash = await bcrypt.hash(password, 10);
-    } catch (error) {
-      let err = error;
-      if (error.name === 'ValidationError') {
-        err = new BadRequestError('Переданы некорректные данные при создании пользователя.');
-      }
-      return next(err);
-    }
+    const hash = await bcrypt.hash(password, 10);
 
-    try {
-      await User.create({
-        name,
-        about,
-        avatar,
-        email,
-        password: hash,
-      });
-    } catch (error) {
-      let err = error;
-      if (error.name === 'ValidationError') {
-        err = new BadRequestError('Переданы некорректные данные при создании пользователя.');
-      }
-      if (error.name === 'MongoServerError' && error.code === 11000) {
-        err = new ConflictError('Пользователь с таким e-mail уже зарегистрирован.');
-      }
-      return next(err);
-    }
+    await User.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    });
 
     res.status(OK).send({
       data: {
@@ -81,28 +61,27 @@ module.exports.createUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    let err = error;
+    if (error.name === 'ValidationError') {
+      err = new BadRequestError('Переданы некорректные данные при создании пользователя.');
+    }
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      err = new ConflictError('Пользователь с таким e-mail уже зарегистрирован.');
+    }
+    next(err);
   }
-
-  return null;
 };
 
 module.exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    let user;
 
-    try {
-      user = await User.findOne({ email }).select('+password');
-      if (!user) {
-        return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
-      }
-    } catch (error) {
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
       return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
 
     const isMatched = await bcrypt.compare(password, user.password);
-
     if (!isMatched) {
       return next(new UnauthorizedError('Переданы некорректные данные при авторизации пользователя.'));
     }
@@ -116,6 +95,7 @@ module.exports.login = async (req, res, next) => {
     await res.cookie('jwt', token, {
       maxAge: 3600000,
     });
+
     res.status(OK).json({ token, message: 'Авторизация прошла успешно.' });
   } catch (error) {
     next(error);
