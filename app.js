@@ -6,6 +6,8 @@ const { celebrate, Joi, errors } = require('celebrate');
 
 const auth = require('./middlewares/auth');
 const errorHandler = require('./middlewares/error-determinant');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
+const cors = require('./middlewares/cors');
 const routerUsers = require('./routes/users');
 const routerCards = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
@@ -22,6 +24,9 @@ app.use(express.urlencoded());
 app.use(cookieParser());
 
 app.get('/', (req, res) => res.send('It\'s working!'));
+
+app.use(requestLogger);
+app.user(cors);
 
 app.post(
   '/signup',
@@ -55,6 +60,7 @@ app.use('/', routerUsers);
 app.use('/', routerCards);
 app.use('*', (req, res, next) => next(new NotFoundError('Запрашиваемая страница не найдена.')));
 
+app.use(errorLogger);
 app.use(errors());
 app.use(errorHandler);
 
