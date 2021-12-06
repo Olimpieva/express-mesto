@@ -26,7 +26,7 @@ app.use(cookieParser());
 app.get('/', (req, res) => res.send('It\'s working!'));
 
 app.use(requestLogger);
-app.user(cors);
+app.use(cors);
 
 app.post(
   '/signup',
